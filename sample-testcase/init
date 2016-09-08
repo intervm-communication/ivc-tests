@@ -1,0 +1,4 @@
+#!/bin/busybox sh
+
+./runtest
+busybox halt -f

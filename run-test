@@ -1,0 +1,33 @@
+#!/bin/bash
+# This is simple, and works a bit more nicely than xl create -c.
+
+set +x
+
+if [ -f "$1" ]; then
+  CFG="$1"
+else
+  CFG="$1/testcase.cfg"
+fi
+
+if ! [ -f "$CFG" ]; then
+  echo "usage: run-test <test-name-or-xl-cfg>"
+  exit 0
+fi
+
+# Extract the domain's name from its configuration.
+NAME=`cat "$CFG" | grep name | awk '{ print $3 }' | sed 's/"//g'`
+
+# Create the relevant domain, but leave it paused.
+sudo xl create -p -q "$CFG"
+
+# Gather its console output.
+DOMID=`sudo xl domid $NAME`
+PTY=`sudo xenstore-read /local/domain/$DOMID/console/tty`
+
+# Unpause the domain, and gather its output.
+# For convenience, filter out the final reboot from the output.
+sudo xl unpause $NAME
+sudo cat $PTY 2>/dev/null
+
+# Finally, destroy the domain.
+sudo xl destroy $NAME 2>/dev/null || true

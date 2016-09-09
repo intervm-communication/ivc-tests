@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+DOMID=$1
+NAME=$2
+BASEDIR=$(dirname "$0")
+
+# Ensure that the domain can access the test xenstore-key.
+sudo xenstore-write /test/gref ""
+sudo xenstore-chmod /test/gref b$DOMID
+
+# Start up the listening other side.
+sudo -b $BASEDIR/otherside $DOMID

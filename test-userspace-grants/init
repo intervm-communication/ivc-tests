@@ -1,0 +1,32 @@
+#!/bin/busybox sh
+
+nodeof () {
+    busybox grep $1 /proc/misc | busybox awk '{print $1}'
+}
+
+mkdev () {
+  DEV=$1
+  MISC=10
+  mknod /dev/xen/$DEV c $MISC $(nodeof $DEV) 2>/dev/null > /dev/null
+}
+
+#Insert any necessary modules.
+for i in *.ko; do
+  busybox insmod $i 2>/dev/null > /dev/null
+done
+
+# Mount the core filesystems.
+mkdir -p /proc
+mkdir -p /sys
+mkdir -p /dev
+mkdir -p /dev/xen
+busybox mount -t proc proc /proc
+busybox mount -t sysfs sysfs /sys
+busybox mount -t xenfs xenfs /proc/xen
+
+# Create the Xen nodes necessary.
+mkdev "gntdev"
+mkdev "gntalloc"
+
+LD_LIBRARY_PATH=/usr/lib /runtest
+busybox halt -f

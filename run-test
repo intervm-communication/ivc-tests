@@ -3,11 +3,8 @@
 
 set +x
 
-if [ -f "$1" ]; then
-  CFG="$1"
-else
-  CFG="$1/testcase.cfg"
-fi
+# Find the test-case xl configuration.
+CFG="$1/testcase.cfg"
 
 if ! [ -f "$CFG" ]; then
   echo "usage: run-test <test-name-or-xl-cfg>"
@@ -24,10 +21,19 @@ sudo xl create -p -q "$CFG"
 DOMID=`sudo xl domid $NAME`
 PTY=`sudo xenstore-read /local/domain/$DOMID/console/tty`
 
+# If we have a pre-hook. run it.
+if [ -x "$1/pre.hook" ]; then
+  "$1/pre.hook" $DOMID "$NAME"
+fi
+
 # Unpause the domain, and gather its output.
 # For convenience, filter out the final reboot from the output.
 sudo xl unpause $NAME
 sudo cat $PTY 2>/dev/null
+
+if [ -x "$1/post.hook" ]; then
+  "$1/post.hook" $DOMID "$NAME"
+fi
 
 # Finally, destroy the domain.
 sudo xl destroy $NAME 2>/dev/null || true
